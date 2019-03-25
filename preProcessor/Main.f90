@@ -20,6 +20,7 @@
 !
 !   Contributors list:
 !   - A. Babarit  
+!   - C. McNatt
 !
 !--------------------------------------------------------------------------------------
 !
@@ -73,6 +74,10 @@
     INTEGER :: Switch_Kochin
     INTEGER :: NTheta
     REAL :: Thetamin,Thetamax
+!   Cylindrical surface for computing diffraction transfer matrix
+    INTEGER :: Switch_CylSurface
+    INTEGER :: cylNTheta,cylNz
+    REAL :: cylR, cylZ
 !   Other local variables
     INTEGER :: M,N
     INTEGER :: i,j,c,d,k
@@ -146,6 +151,18 @@
         Switch_FreeSurface=1
     ELSE
         Switch_FreeSurface=0
+    END IF
+!   Read the cylindrical surface parameters
+    READ(10,*) cylR,cylNTheta,cylNz
+    IF (cylR.GT.0) THEN
+        Switch_CylSurface=1
+        IF (Environment%Depth.LE.0.) THEN
+            Switch_CylSurface=0
+            cylR=0
+            WRITE(*,'(A)') 'Cannot compute cyldindrical surface for infinite water depth'
+        END IF
+    ELSE
+        Switch_CylSurface=0
     END IF
     CLOSE(10)
 !   re-read input file and store radiation and integration cases
@@ -244,6 +261,24 @@
     CLOSE(11)        
     DEALLOCATE(PRESSURE,NVEL,FNDS)
 !
+!   --- Write Problem Description File ----------------------------------------------------------------------------------------
+!
+    OPEN(11,FILE=ID%ID(1:ID%lID)//'/results/ProblemDescription.txt')
+    WRITE(11,'(A,I4)') 'Number of Problems: ',(Nbeta+Nradiation)*Nw
+    WRITE(11,'(A12, A12, A12, A12, A12, A12)') 'Number','Omega','Diff/Rad','Dir','Body','Mode'
+    c = 0
+    DO i=1,Nw
+        DO j=1,Nbeta
+            c = c + 1
+            WRITE(11,'(I12, F12.3, A12, F12.3, A12, A12)'), c, w(i),'Diff',Beta(j),'---','---' 
+        END DO
+        DO j=1,Nradiation
+            c = c + 1
+            WRITE(11,'(I12, F12.3, A12, A12, I12, I12)'), c,w(i),'Rad','---',RadCase(j)%Body,RadCase(j)%Mode
+        END DO
+    END DO
+    CLOSE(11)        
+!
 !   --- Save body conditions ----------------------------------------------------------------------------------------
 !
     OPEN(11,FILE=ID%ID(1:ID%lID)//'/Normalvelocities.dat')
@@ -255,6 +290,7 @@
     WRITE(11,*) ((Switch_Potential,j=1,Nbeta+Nradiation),i=1,Nw)
     WRITE(11,*) ((Switch_Freesurface,j=1,Nbeta+Nradiation),i=1,Nw)
     WRITE(11,*) ((Switch_Kochin,j=1,Nbeta+Nradiation),i=1,Nw)
+    WRITE(11,*) ((Switch_CylSurface,j=1,Nbeta+Nradiation),i=1,Nw)
     DO c=1,Mesh%Npanels*2**Mesh%Isym
         WRITE(11,*) (REAL(NormalVelocity(c,j)),IMAG(NormalVelocity(c,j)),j=1,(Nbeta+Nradiation)*Nw)
     END DO
@@ -311,6 +347,28 @@
             WRITE(11,*) Thetamin*PI/180.
         END IF
     END IF
+    CLOSE(11)
+!
+!   --- Generate Cylindrical control surf mesh file ----------------------------------------------------------------------
+!
+    OPEN(11,FILE=ID%ID(1:ID%lID)//'/mesh/Cylsurface.dat')
+    WRITE(11,*) cylNTheta*cylNz,cylNTheta*(cylNz-1) 
+    DO i=1,cylNz
+        DO j=1,cylNTheta
+            IF (cylNz .EQ. 1) THEN
+                cylZ = 0
+            ELSE
+                cylZ = -Environment%Depth*(1.-COS(PI/2.*(i-1.)/(cylNz-1.)))
+            END IF
+            WRITE(11,'(3(X,E14.6))') cylR*COS(2.*PI*(j-1)/cylNTheta),cylR*SIN(2.*PI*(j-1)/cylNTheta),cylZ
+        END DO
+    END DO  
+    DO i=1,cylNz-1
+        DO j=1,cylNTheta-1
+            WRITE(11,'(4(X,I7))') j+(i-1)*cylNTheta,j+i*cylNTheta,j+i*cylNTheta+1,j+(i-1)*cylNTheta+1
+        END DO
+        WRITE(11,'(4(X,I7))') i*cylNTheta,(i+1)*cylNTheta,i*cylNTheta+1,(i-1)*cylNTheta+1
+    END DO
     CLOSE(11)
 !   
 !   --- Save index of cases ----------------------------------------------------------------------------------------------

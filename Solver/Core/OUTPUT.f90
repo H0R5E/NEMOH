@@ -16,6 +16,7 @@
 !
 !   Contributors list:
 !   - A. Babarit 
+!   - C. McNatt
 !
 !--------------------------------------------------------------------------------------
 MODULE OUTPUT
@@ -39,29 +40,37 @@ CONTAINS
     CLOSE(11)
     END SUBROUTINE WRITE_KOCHIN
 !
-    SUBROUTINE WRITE_FS(ID,Pbnumber,PHI,MeshFS)
+    SUBROUTINE WRITE_SURF(ID,Pbnumber,PHI,MeshFS,Name,IsFS)
     USE MIDENTIFICATION
     USE MMesh
     IMPLICIT NONE
-    INTEGER :: Pbnumber
+    INTEGER :: Pbnumber, IsFS
     TYPE(TID) :: ID
     TYPE(TMesh) :: MeshFS
     INTEGER:: i
     COMPLEX,DIMENSION(*) :: PHI
+    CHARACTER(*) :: Name
     CHARACTER*5 :: str
     WRITE(str,'(I5)') Pbnumber
-    OPEN(11,FILE=ID%ID(1:ID%lID)//'/results/freesurface.'//str//'.dat')
-    WRITE(11,*) 'VARIABLES="X" "Y" "abs(eta) (m)" "angle(phi) (rad)" "PRE1" "PRE2"'
-    WRITE(11,'(A,I7,A,I7,A)') 'ZONE N=',MeshFS%Npoints,' ,E = ',MeshFS%Npanels,' ,F=FEPOINT,ET=QUADRILATERAL'
-    DO i=1,MeshFS%Npoints
-!		Adrien Combourieu: remove "-" before real and imaginary part to be consistent with amplitude and phase
-        WRITE(11,'(6(X,E14.7))') MeshFS%X(1,i),MeshFS%X(2,i),ABS(PHI(i)),ATAN2(IMAG(PHI(i)),REAL(PHI(i))),REAL(PHI(i)),IMAG(PHI(i)) 
-    END DO
+    OPEN(11,FILE=ID%ID(1:ID%lID)//'/results/'//Name//str//'.dat')
+    IF (IsFS .EQ. 1) THEN
+        WRITE(11,*) 'VARIABLES="X" "Y" "abs(eta) (m)" "angle(phi) (rad)" "PRE1" "PRE2"'
+        WRITE(11,'(A,I7,A,I7,A)') 'ZONE N=',MeshFS%Npoints,' ,E = ',MeshFS%Npanels,' ,F=FEPOINT,ET=QUADRILATERAL'
+        DO i=1,MeshFS%Npoints
+            WRITE(11,'(6(X,E14.7))') MeshFS%X(1,i),MeshFS%X(2,i),ABS(PHI(i)),ATAN2(IMAG(PHI(i)),REAL(PHI(i))),REAL(PHI(i)),IMAG(PHI(i)) 
+        END DO
+    ELSE
+        WRITE(11,*) 'VARIABLES="X" "Y" "Z" "abs(eta) (m)" "angle(phi) (rad)" "PRE1" "PRE2"'
+        WRITE(11,'(A,I7,A,I7,A)') 'ZONE N=',MeshFS%Npoints,' ,E = ',MeshFS%Npanels,' ,F=FEPOINT,ET=QUADRILATERAL'
+        DO i=1,MeshFS%Npoints
+            WRITE(11,'(7(X,E14.7))') MeshFS%X(1,i),MeshFS%X(2,i),MeshFS%X(3,i),ABS(PHI(i)),ATAN2(IMAG(PHI(i)),REAL(PHI(i))),REAL(PHI(i)),IMAG(PHI(i)) 
+        END DO
+    END IF
     DO i=1,MeshFS%Npanels
         WRITE(11,*) MeshFS%P(1,i),MeshFS%P(2,i),MeshFS%P(3,i),MeshFS%P(4,i)
     END DO
     CLOSE(11)
-    END SUBROUTINE WRITE_FS 
+    END SUBROUTINE WRITE_SURF 
 !
     SUBROUTINE WRITE_POTENTIAL(ID,Pbnumber,PRESSURE)
     USE MIDENTIFICATION

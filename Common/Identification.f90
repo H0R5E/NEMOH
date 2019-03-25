@@ -21,7 +21,7 @@
 MODULE MIdentification
 ! Definition of TYPE TID
 TYPE TID
-    CHARACTER*80 :: ID
+    CHARACTER*200 :: ID
     INTEGER :: lID
 END TYPE TID
 !

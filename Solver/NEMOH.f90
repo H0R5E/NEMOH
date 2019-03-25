@@ -24,6 +24,7 @@
 !   - J.C. Daubisse
 !   - J. Singh
 !   - A. Babarit  
+!   - C. McNatt
 !
 !--------------------------------------------------------------------------------------
 !
@@ -52,6 +53,7 @@
 !   Meshes
     TYPE(TMesh) :: Mesh 
     TYPE(TMesh) :: MeshFS
+    TYPE(TMesh) :: MeshCyl
 !   Nemoh
     REAL                    :: T
     COMPLEX,DIMENSION(:),ALLOCATABLE :: NVEL,PRESSURE
@@ -116,6 +118,19 @@
         END DO
     END IF
     CLOSE(10)
+!   Initialise cylinder surface calculation points
+    OPEN(10,FILE=ID%ID(1:ID%lID)//'/mesh/Cylsurface.dat')
+    READ(10,*) MeshCyl%Npoints,MeshCyl%Npanels 
+    IF (MeshCyl%Npoints.GT.0) THEN
+        CALL CreateTMesh(MeshCyl,MeshCyl%Npoints,MeshCyl%Npanels,1)
+        DO j=1,MeshCyl%Npoints
+            READ(10,*) MeshCyl%X(1,j),MeshCyl%X(2,j),MeshCyl%X(3,j)
+        END DO
+        DO j=1,MeshCyl%Npanels
+            READ(10,*) MeshCyl%P(1,j),MeshCyl%P(2,j),MeshCyl%P(3,j),MeshCyl%P(4,j)
+        END DO
+    END IF
+    CLOSE(10)
 !   Initialise results table
     ALLOCATE(Force(Nintegration,Bodyconditions%Nproblems))
     Force(:,:)=0.
@@ -132,7 +147,7 @@
             NVEL(c)=BodyConditions%NormalVelocity(c,j)
         END DO
 !       Solve BVP
-        CALL SOLVE_BVP(j,ID,2.*PI/BodyConditions%Omega(j),NVEL,PRESSURE,BodyConditions%Switch_Kochin(j),NTheta,Theta,HKochin,BodyConditions%Switch_Freesurface(j),MeshFS,BodyConditions%Switch_Potential(j))
+        CALL SOLVE_BVP(j,ID,2.*PI/BodyConditions%Omega(j),NVEL,PRESSURE,BodyConditions%Switch_Kochin(j),NTheta,Theta,HKochin,BodyConditions%Switch_Freesurface(j),MeshFS,BodyConditions%Switch_Potential(j),BodyConditions%Switch_CylSurface(j),MeshCyl)
 !       Calculate force coefficients
         DO i=1,Nintegration
             DO c=1,Mesh%Npanels*2**Mesh%Isym
@@ -171,6 +186,7 @@
     DEALLOCATE(Force)
     DEALLOCATE(Theta,HKochin)
     IF (MeshFS%Npoints.GT.0) CALL DeleteTMesh(MeshFS)
+    IF (MeshCyl%Npoints.GT.0) CALL DeleteTMesh(MeshCyl)
     CALL DEALLOCATE_DATA
 !
     END PROGRAM Main

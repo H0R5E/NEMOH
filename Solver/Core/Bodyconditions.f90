@@ -16,6 +16,7 @@
 !
 !   Contributors list:
 !   - A. Babarit  
+!   - C. McNatt
 !
 !--------------------------------------------------------------------------------------
     MODULE MBodyConditions
@@ -29,6 +30,7 @@
         INTEGER,DIMENSION(:),ALLOCATABLE :: Switch_FreeSurface
         INTEGER,DIMENSION(:),ALLOCATABLE :: Switch_Kochin
         REAL,DIMENSION(:),ALLOCATABLE :: Switch_Type
+        INTEGER,DIMENSION(:),ALLOCATABLE :: Switch_CylSurface
     END TYPE TBodyConditions
 !
     CONTAINS
@@ -42,7 +44,7 @@
         BodyConditions%Nproblems=Nproblems
         BodyConditions%Npanels=Npanels
         ALLOCATE(BodyConditions%NormalVelocity(Npanels,Nproblems))
-        ALLOCATE(BodyConditions%Omega(Nproblems),BodyConditions%Switch_Potential(Nproblems),BodyConditions%Switch_FreeSurface(Nproblems),BodyConditions%Switch_Kochin(Nproblems),BodyConditions%Switch_Type(Nproblems))
+        ALLOCATE(BodyConditions%Omega(Nproblems),BodyConditions%Switch_Potential(Nproblems),BodyConditions%Switch_FreeSurface(Nproblems),BodyConditions%Switch_Kochin(Nproblems),BodyConditions%Switch_Type(Nproblems),BodyConditions%Switch_CylSurface(Nproblems))
         END SUBROUTINE CreateTBodyConditions
 !       --- 
         SUBROUTINE CopyTBodyConditions(BodyConditionsTarget,BodyConditionsSource)
@@ -56,6 +58,7 @@
             BodyConditionsTarget%Switch_FreeSurface(i)=BodyConditionsSource%Switch_FreeSurface(i)
             BodyConditionsTarget%Switch_Kochin(i)=BodyConditionsSource%Switch_Kochin(i)
             BodyConditionsTarget%Switch_Type(i)=BodyConditionsSource%Switch_Type(i)
+            BodyConditionsTarget%Switch_CylSurface(i)=BodyConditionsSource%Switch_CylSurface(i)
             DO k=1,BodyConditionsTarget%Npanels
                 BodyConditionsTarget%NormalVelocity(k,i)=BodyConditionsSource%NormalVelocity(k,i)
             END DO
@@ -77,7 +80,8 @@
         READ(10,*) (BodyConditions%Switch_Type(i),i=1,Nproblems)
         READ(10,*) (BodyConditions%Switch_Potential(i),i=1,Nproblems)
         READ(10,*) (BodyConditions%Switch_FreeSurface(i),i=1,Nproblems)
-        READ(10,*) (BodyConditions%Switch_Kochin(i),i=1,Nproblems)
+        READ(10,*) (BodyConditions%Switch_Kochin(i),i=1,Nproblems)   
+        READ(10,*) (BodyConditions%Switch_CylSurface(i),i=1,Nproblems)
         DO k=1,Npanels
             READ(10,*) (RBC(i),IBC(i),i=1,Nproblems)
             DO i=1,Nproblems
@@ -91,7 +95,7 @@
         SUBROUTINE DeleteTBodyConditions(BodyConditions)
         IMPLICIT NONE
         TYPE(TBodyConditions) :: BodyConditions
-        DEALLOCATE(BodyConditions%Omega,BodyConditions%Switch_potential,BodyConditions%Switch_FreeSurface,BodyConditions%Switch_Kochin,BodyConditions%Switch_Type)
+        DEALLOCATE(BodyConditions%Omega,BodyConditions%Switch_potential,BodyConditions%Switch_FreeSurface,BodyConditions%Switch_Kochin,BodyConditions%Switch_Type,BodyConditions%Switch_CylSurface)
         DEALLOCATE(BodyConditions%NormalVelocity)
         END SUBROUTINE DeleteTBodyConditions  
 !       ---

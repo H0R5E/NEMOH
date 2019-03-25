@@ -17,6 +17,7 @@
 !   Contributors list:
 !   - J. Singh
 !   - A. Babarit 
+!   - C. McNatt
 !
 !--------------------------------------------------------------------------------------
 MODULE SOLVE_BEM
@@ -25,7 +26,7 @@ IMPLICIT NONE
 !
 CONTAINS
 !
-    SUBROUTINE SOLVE_BVP(ProblemNumber,ID,Period,NVEL,PRESSURE,Switch_Kochin,NTheta,Theta,HKochin,Switch_FS,MeshFS,Switch_potential)
+    SUBROUTINE SOLVE_BVP(ProblemNumber,ID,Period,NVEL,PRESSURE,Switch_Kochin,NTheta,Theta,HKochin,Switch_FS,MeshFS,Switch_potential,Switch_Cyl,MeshCyl)
 !
         USE MIDENTIFICATION
         USE COM_VAR
@@ -47,6 +48,8 @@ CONTAINS
         INTEGER :: Switch_FS
         TYPE(TMesh) :: MeshFS
         INTEGER :: Switch_potential
+        INTEGER :: Switch_Cyl
+        TYPE(TMesh) :: MeshCyl
 !       For solver (DIRECT or GMRES)
         INTEGER :: NEXP
 !       Locals
@@ -56,6 +59,7 @@ CONTAINS
         REAL :: kwave
         REAL :: AKH,AMH
         COMPLEX,DIMENSION(1+MeshFS%Npoints) :: PHI,ETA
+        COMPLEX,DIMENSION(1+MeshCyl%Npoints) :: PhiC,EtaC
 !
         PI=4.*ATAN(1.)
 !       Define period
@@ -107,8 +111,17 @@ CONTAINS
                 CALL COMPUTE_POTENTIAL_DOMAIN(ID,PHI(j),MeshFS%X(1,j),MeshFS%X(2,j),0.,kwave,AMH,NEXP)
                 ETA(j)=II*W/G*PHI(j)
             END DO
-            CALL WRITE_FS(ID,ProblemNumber,ETA,MeshFS)
+            CALL WRITE_SURF(ID,ProblemNumber,ETA,MeshFS,'freesurface.',1)
         END IF
+!       Cylindrical surface computation 
+        IF (Switch_Cyl.EQ.1) THEN
+            DO j=1,MeshCyl%Npoints
+                CALL COMPUTE_POTENTIAL_DOMAIN(ID,PhiC(j),MeshCyl%X(1,j),MeshCyl%X(2,j),MeshCyl%X(3,j),kwave,AMH,NEXP)
+                EtaC(j)=II*W/G*PhiC(j)
+            END DO
+            CALL WRITE_SURF(ID,ProblemNumber,EtaC,MeshCyl,'cylsurface.',0)
+        END IF
+        
 !       Save output
         IF (Switch_Potential.EQ.1) THEN
             CALL WRITE_POTENTIAL(ID,ProblemNumber,PRESSURE)

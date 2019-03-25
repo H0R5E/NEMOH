@@ -16,6 +16,7 @@
 !
 !   Contributors list:
 !   - A. Babarit  
+!   - C. McNatt
 !
 !--------------------------------------------------------------------------------------
     MODULE MMesh
@@ -106,7 +107,7 @@
         REAL    :: Lad,Length
         INTEGER :: i,j,c,d
         INTEGER :: Npoints,Npanels,Nbodies
-        CHARACTER*80 :: meshfile,line
+        CHARACTER*200 :: meshfile,line
         INTEGER :: lfile
         INTEGER :: M,N
         REAL,DIMENSION(3) :: U,V,W1,W2

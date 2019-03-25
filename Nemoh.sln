@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
 Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "preProcessor", "preProcessor\preProcessor.vfproj", "{966A3ADA-093E-4C23-BD98-26BCF0BA061E}"
 EndProject
 Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "postProcessor", "postProcessor\postProcessor.vfproj", "{8EE0EB67-9FD0-4E2A-B13B-FB9E24B2BB9B}"
