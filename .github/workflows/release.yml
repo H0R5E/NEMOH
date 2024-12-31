@@ -1,0 +1,77 @@
+name: Create Release Assets
+on:
+  release:
+    types: [published]
+permissions: 
+  contents: write
+
+env:
+  WINDOWS_HPCKIT_URL: https://registrationcenter-download.intel.com/akdlm/IRC_NAS/a37c30c3-a846-4371-a85d-603e9a9eb94c/intel-oneapi-hpc-toolkit-2025.0.1.48_offline.exe
+  WINDOWS_FORTRAN_COMPONENTS: intel.oneapi.win.ifort-compiler
+  LINUX_FORTRAN_COMPONENTS: intel-oneapi-compiler-fortran
+  CACHE_NUMBER: 5
+
+jobs:
+  linux:
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Setup | Checkout repository at workflow sha
+        uses: actions/checkout@v4
+      - name: Setup | Setup apt repo
+        run: .github/scripts/setup_apt_repo_linux.sh
+      - name: collect versioned dependencies of apt packages
+        run: .github/scripts/apt_depends.sh $LINUX_FORTRAN_COMPONENTS | tee depends.txt
+      - name: Cache install
+        id: cache-install
+        uses: actions/cache@v3
+        with:
+          path: |
+            /opt/intel/oneapi/compiler
+          key: install-${{ env.LINUX_FORTRAN_COMPONENTS }}-${{ hashFiles('**/depends.txt') }}-compiler-${{ hashFiles('**/.github/scripts/cache_exclude_linux.sh') }}
+      - name: Install
+        if: steps.cache-install.outputs.cache-hit != 'true'
+        run: .github/scripts/install_linux_apt.sh $LINUX_FORTRAN_COMPONENTS
+      - name: Build
+        run: |
+          make
+          tar czf nemoh-linux-${{ github.event.release.tag_name }}.tar.gz bin
+          gh release upload ${{github.event.release.tag_name}} nemoh-linux-${{ github.event.release.tag_name }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ github.TOKEN }}
+      - name: Exclude unused files from cache
+        if: steps.cache-install.outputs.cache-hit != 'true'
+        run: .github/scripts/cache_exclude_linux.sh
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Setup | Checkout repository at workflow sha
+        uses: actions/checkout@v4
+      - name: Cache install
+        id: cache-install
+        uses: actions/cache@v3
+        with:
+          path: |
+              C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat
+              C:\Program Files (x86)\Intel\oneAPI\compiler
+          key: install-${{ env.CACHE_NUMBER }}-${{ env.WINDOWS_HPCKIT_URL }}-${{ env.WINDOWS_FORTRAN_COMPONENTS }}-compiler-${{ hashFiles('**/.github/scripts/cache_exclude_windows.sh') }}
+      - name: Install
+        if: steps.cache-install.outputs.cache-hit != 'true'
+        run: .github/scripts/install_windows.bat $WINDOWS_HPCKIT_URL $WINDOWS_FORTRAN_COMPONENTS
+      - name: Build
+        run: .github/scripts/build_windows.bat
+      - run: |
+          7z a -tzip nemoh-win64-${{ github.event.release.tag_name }}.zip x64
+          gh release upload ${{github.event.release.tag_name}} nemoh-win64-${{ github.event.release.tag_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ github.TOKEN }}
+      - name: Exclude unused files from cache
+        if: steps.cache-install.outputs.cache-hit != 'true'
+        shell: bash
+        run: .github/scripts/cache_exclude_windows.sh
