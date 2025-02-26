@@ -1,6 +1,6 @@
 !--------------------------------------------------------------------------------------
 !
-!   Copyright 2014 Ecole Centrale de Nantes, 1 rue de la Noë, 44300 Nantes, France
+!   Copyright 2014 Ecole Centrale de Nantes, 1 rue de la NoÃ«, 44300 Nantes, France
 !
 !   Licensed under the Apache License, Version 2.0 (the "License");
 !   you may not use this file except in compliance with the License.
@@ -157,13 +157,25 @@
         READ(10,*)
         READ(10,*)
         READ(10,*)
-        READ(10,*) 
+        READ(10,*)
         DO c=1,Nbodies
-            READ(10,*) meshfile
-            tX=0.
-            tY=0.
-            READ(10,*) meshfile
-              lfile=LNBLNK(meshfile)
+            READ(10,*)
+            READ(10,'(A)') meshfile
+            
+            ! Isolate the path part of the meshfile string
+            lfile = SCAN(meshfile, '!') ! Comments
+            IF (lfile > 1) THEN
+                meshfile = meshfile(1:lfile-1)
+            END IF
+            
+            lfile = SCAN(meshfile, ACHAR(9) ) ! Tabs
+            IF (lfile > 1) THEN
+                meshfile = meshfile(1:lfile-1)
+            END IF
+            
+            meshfile = TRIM(meshfile) ! Whitespace
+            
+            lfile = LNBLNK(meshfile)
             OPEN(11,FILE=meshfile(1:lfile))
             READ(11,*) M,N
             IF ((c.GT.1).AND.(N.NE.Mesh%Isym)) THEN
@@ -173,6 +185,8 @@
                 Mesh%Isym=N
             END IF          
             READ(10,*) M,N
+            tX=0.
+            tY=0.
             DO i=1,M
                 READ(11,*) d,(Mesh%X(j,Npoints+i),j=1,3)
                 Mesh%X(1,Npoints+i)=Mesh%X(1,Npoints+i)+tX

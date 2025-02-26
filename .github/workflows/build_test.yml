@@ -1,9 +1,11 @@
-name: Create Release Assets
+name: Test Build Assets
 on:
-  release:
-    types: [published]
-permissions: 
-  contents: write
+  push:
+    branches: 
+      - velocity_potential_over_cylinder
+  pull_request: 
+    branches: 
+      - velocity_potential_over_cylinder
 
 env:
   WINDOWS_HPCKIT_URL: https://registrationcenter-download.intel.com/akdlm/IRC_NAS/a37c30c3-a846-4371-a85d-603e9a9eb94c/intel-oneapi-hpc-toolkit-2025.0.1.48_offline.exe
@@ -35,14 +37,35 @@ jobs:
         run: .github/scripts/install_linux_apt.sh $LINUX_FORTRAN_COMPONENTS
       - name: Build
         run: .github/scripts/build_linux.sh
-      - run: |
-          tar czf nemoh-linux-${{ github.event.release.tag_name }}.tar.gz bin
-          gh release upload ${{github.event.release.tag_name}} nemoh-linux-${{ github.event.release.tag_name }}.tar.gz
-        env:
-          GITHUB_TOKEN: ${{ github.TOKEN }}
+      - name: Tar files
+        run: tar -cvf nemoh.tar bin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nemoh-linux
+          path: nemoh.tar
       - name: Exclude unused files from cache
         if: steps.cache-install.outputs.cache-hit != 'true'
         run: .github/scripts/cache_exclude_linux.sh
+
+  linux-test:
+    needs: linux
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: nemoh-linux
+      - name: Untar files
+        run: tar -xf nemoh.tar
+      - name: Test
+        run: |
+          $GITHUB_WORKSPACE/bin/preProc
+          $GITHUB_WORKSPACE/bin/solver
+          $GITHUB_WORKSPACE/bin/postProc
+        working-directory: ./Examples/InteractingCube
 
   windows:
     runs-on: windows-latest
@@ -56,8 +79,26 @@ jobs:
         run: .github/scripts/install_windows.bat $WINDOWS_HPCKIT_URL $WINDOWS_FORTRAN_COMPONENTS
       - name: Build
         run: .github/scripts/build_windows.bat
-      - run: |
-          7z a -tzip nemoh-win64-${{ github.event.release.tag_name }}.zip x64
-          gh release upload ${{github.event.release.tag_name}} nemoh-win64-${{ github.event.release.tag_name }}.zip
-        env:
-          GITHUB_TOKEN: ${{ github.TOKEN }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nemoh-win64
+          path: x64
+
+  windows-test:
+    needs: windows
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: nemoh-win64
+          path: x64
+      - name: Test
+        run: |
+          $GITHUB_WORKSPACE/x64/Release/preProcessor.exe
+          $GITHUB_WORKSPACE/x64/Release/Solver.exe
+          $GITHUB_WORKSPACE/x64/Release/postProcessor.exe
+        working-directory: ./Examples/InteractingCube
